@@ -183,7 +183,7 @@ remove_duplicates <- function (.data, .symbol)
   # select numeric columns
   nums <- unlist(lapply(.data, is.numeric), use.names = FALSE)
   # order duplicated probes by decreasing between sample variance
-  data <- .data[order(rowVars(as.matrix(.data[, nums, drop = F])), decreasing = T), ] 
+  data <- .data[order(apply(as.matrix(.data[, nums, drop = F]), 1, var, na.rm = TRUE), decreasing = T), ] 
   # remove duplicated probes, keeping the one with the highest variance
   data <- data[!duplicated(data[[.symbol]]), ]
   return(data)

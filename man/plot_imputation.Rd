@@ -4,7 +4,7 @@
 \alias{plot_imputation}
 \title{Visualize distribution of observed vs imputed values}
 \usage{
-plot_imputation(data_imputed, missing_mat, type)
+plot_imputation(data_imputed, missing_mat, title)
 }
 \arguments{
 \item{data_imputed}{Matrix or data frame with imputed gene expression data}
@@ -12,7 +12,7 @@ plot_imputation(data_imputed, missing_mat, type)
 \item{missing_mat}{Binary matrix indicating missing values (0 = observed, 1 = imputed).
 Must have same dimensions as data_imputed}
 
-\item{type}{Character string for plot title (e.g., "MinProb", "KNN")}
+\item{title}{Character string for plot title}
 }
 \value{
 ggplot object with overlaid histograms

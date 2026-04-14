@@ -112,6 +112,7 @@ plot_running_score <- function(.df, .x, .y, .color, .palette){
 #'
 #' @importFrom ggplot2 ggplot aes geom_linerange theme_bw xlab scale_x_continuous
 #'   scale_y_continuous scale_color_manual facet_grid theme element_blank element_text
+#' @importFrom stringr str_to_title
 #' @examples
 #' \dontrun{
 #' enrich_data <- gsInfo(gsea_result$gsea, 1)
@@ -130,7 +131,7 @@ plot_gene_rank <- function(.df, .x, .facet, .color, .palette){
            ggplot2::scale_y_continuous(expand = c(0, 0)) +
            ggplot2::scale_color_manual(values = .palette) +
            ggplot2::facet_grid(facet, scales = "free_y", switch = "y",
-                             labeller = ggplot2::labeller(.default = Hmisc::capitalize)) +
+                             labeller = ggplot2::labeller(.default = stringr::str_to_title)) +
            ggplot2::theme(panel.grid.major = ggplot2::element_blank(),
                          panel.grid.minor = ggplot2::element_blank(),
                          panel.grid.major.y = ggplot2::element_blank(),
@@ -394,6 +395,7 @@ merge.rec <- function(.list, ...){
 #'
 #' @importFrom dplyr filter select mutate across rowwise ungroup c_across relocate
 #' @importFrom stringr str_detect
+#' @importFrom stats setNames
 #' @examples
 #' \dontrun{
 #' venn_data <- generate_venn_object(
@@ -607,7 +609,7 @@ generate_venn_layout <- function(sets,
 #' @return ggplot object
 #' @export
 #'
-#' @importFrom ggplot2 ggplot aes theme guides guide_legend geom_label scale_fill_manual scale_fill_viridis_d theme element_text unit
+#' @importFrom ggplot2 ggplot aes theme guides guide_legend geom_label scale_fill_manual scale_fill_viridis_d theme element_text
 #' @importFrom ggforce geom_ellipse
 #' @importFrom ggdendro theme_dendro
 #' @importFrom ggnewscale new_scale_fill
@@ -703,13 +705,13 @@ plot_venn <- function(sets, names,
 #' @param legend Character string for the legend title
 #' @param terms Character, either "terms" for GO/HALLMARK or "pathways" for REACTOME/KEGG (default: "terms")
 #'
-#' @return cowplot grid object with two barplots
+#' @return grid grob object with arranged barplots
 #' @export
 #'
 #' @importFrom ggplot2 ggplot aes geom_bar coord_flip labs theme_bw theme element_rect scale_fill_continuous scale_x_discrete scale_y_reverse
 #' @importFrom dplyr slice_head mutate
 #' @importFrom stringr str_trim str_replace_all str_wrap
-#' @importFrom cowplot plot_grid
+#' @importFrom gridExtra arrangeGrob
 #' @examples
 #' \dontrun{
 #' plot <- plot_ora_bar(
@@ -763,9 +765,16 @@ plot_ora_bar <- function(list, name, n = 10, legend, terms = c("terms", "pathway
   title_gg <- ggplot2::ggplot() + 
     ggplot2::labs(title = stringr::str_replace_all(name, "_", " ")) + 
     ggplot2::theme_minimal()
-  gridded <- cowplot::plot_grid(p2, p1, ncol = 2, align = "h")
   
-  grid <- cowplot::plot_grid(title_gg, gridded, ncol = 1, rel_heights = c(0.1, 1))
+  # Arrange plots side by side
+  plots_row <- gridExtra::arrangeGrob(p2, p1, ncol = 2)
+  
+  # Combine with title
+  grid <- gridExtra::arrangeGrob(
+    title_gg,
+    plots_row,
+    ncol = 1, heights = grid::unit(c(0.1, 1), c("null", "null"))
+  )
   return(grid)
 }
 
@@ -789,11 +798,11 @@ plot_ora_bar <- function(list, name, n = 10, legend, terms = c("terms", "pathway
 #' @return Combined ggplot object with boxplot and PCA arranged vertically
 #' @export
 #'
-#' @importFrom tidyr pivot_longer
+#' @importFrom tidyr pivot_longer all_of
 #' @importFrom dplyr select
 #' @importFrom ggplot2 ggplot aes geom_jitter geom_boxplot scale_fill_viridis_d
-#'   scale_color_viridis_d scale_shape_manual theme_bw labs theme element_text element_blank
-#' @importFrom ggpubr ggarrange get_legend
+#'   scale_color_viridis_d scale_shape_manual theme_bw labs theme element_text element_blank margin
+#' @importFrom gridExtra arrangeGrob
 #' @importFrom stats prcomp
 #' @examples
 #' \dontrun{
@@ -852,7 +861,7 @@ plot_batch <- function(.matrix, .coldata, .condition, .batch = NULL, title) {
   
   # Prepare long format data
   mat_long <- .matrix %>%
-    tidyr::pivot_longer(cols = -all_of(symbol_col), names_to = "sample", values_to = "intensity")
+    tidyr::pivot_longer(cols = -tidyr::all_of(symbol_col), names_to = "sample", values_to = "intensity")
   mat_long$condition <- .coldata[[.condition]][match(mat_long$sample, .coldata$sample)]
   mat_long$labels <- .coldata$labels[match(mat_long$sample, .coldata$sample)]
   
@@ -871,7 +880,7 @@ plot_batch <- function(.matrix, .coldata, .condition, .batch = NULL, title) {
                    legend.title = ggplot2::element_blank())
   
   # PCA plot
-  pca_data <- .matrix %>% dplyr::select(-all_of(symbol_col)) %>% t()
+  pca_data <- .matrix %>% dplyr::select(-tidyr::all_of(symbol_col)) %>% t()
   pca_res <- stats::prcomp(pca_data, scale. = TRUE)
   pca_df <- data.frame(PC1 = pca_res$x[, 1],
                        PC2 = pca_res$x[, 2], 
@@ -903,10 +912,8 @@ plot_batch <- function(.matrix, .coldata, .condition, .batch = NULL, title) {
       ggplot2::theme(legend.title = ggplot2::element_blank())
   }
   
-  # Combine plots with shared legend
-  ggpubr::ggarrange(plot_a, plot_b, ncol = 1, nrow = 2, heights = c(1, .5), 
-                    common.legend = TRUE, legend = "right", 
-                    legend.grob = ggpubr::get_legend(plot_b))
+  # Combine plots vertically
+  gridExtra::arrangeGrob(plot_a, plot_b, ncol = 1, heights = c(1, .5))
 }
 
 
@@ -937,10 +944,9 @@ plot_batch <- function(.matrix, .coldata, .condition, .batch = NULL, title) {
 #'
 #' @importFrom ggplot2 ggplot aes geom_point geom_smooth labs theme_minimal 
 #'   scale_color_viridis_c annotation_custom theme element_text
-#' @importFrom ggpubr ggarrange
 #' @importFrom pheatmap pheatmap
 #' @importFrom grDevices colorRampPalette
-#' @importFrom gridExtra tableGrob ttheme_minimal
+#' @importFrom gridExtra tableGrob ttheme_minimal arrangeGrob
 #' @examples
 #' \dontrun{
 #' # Create sample data with missing values
@@ -1044,11 +1050,9 @@ plot_missing <- function(.matrix, .coldata, title, threshold = 0.5, type = c("ge
     colhead = list(fg_params = list(hjust = 0.5, x = 0.5), bg_params = list(fill = "white", col = "grey")),
     rowhead = list(fg_params = list(hjust = 0.5, x = 0.5), bg_params = list(fill = "white", col = "grey"))
   ))
-  # Combine the scatter plot (with nested table) and heatmap into a single figure
-  grid_1 <- ggpubr::ggarrange(p1_A, p1_B[[4]], ncol = 2, nrow = 1, widths = c(1, .5), align = "h") +
-    theme(plot.margin = margin(0.5,0.5,0.5,0.5, "cm")) 
-  grid <- ggpubr::ggarrange(grid_1, summary_plot, ncol = 1, nrow = 2, heights = c(1, .3), align = "v") + 
-    theme(plot.margin = margin(0.1,0.1,0.1,0.1, "cm"))
+  # Combine the scatter plot and heatmap into a single figure
+  grid_1 <- gridExtra::arrangeGrob(p1_A, p1_B[[4]], ncol = 2, widths = c(1, .5))
+  grid <- gridExtra::arrangeGrob(grid_1, summary_plot, ncol = 1, heights = c(1, .3))
   # Filter the matrix to keep only genes below threshold
   filtered_matrix <- .matrix[log2_vs_MV$ratioMV < threshold, ]
   # Filter matching rows in missing matrix for heatmap
