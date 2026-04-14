@@ -18,7 +18,7 @@ plot_ora_bar(list, name, n = 10, legend, terms = c("terms", "pathways"))
 \item{terms}{Character, either "terms" for GO/HALLMARK or "pathways" for REACTOME/KEGG (default: "terms")}
 }
 \value{
-cowplot grid object with two barplots
+grid grob object with arranged barplots
 }
 \description{
 Generates a 2-panel barplot showing the top significantly enriched pathways

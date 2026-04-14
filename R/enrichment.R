@@ -250,7 +250,6 @@ extract_gsea_results <- function(.gsea, .db, signif_cutoff = 0.1){
 #' @export
 #'
 #' @importFrom dplyr arrange mutate select case_when
-#' @importFrom tibble remove_rownames column_to_rownames
 #' @examples
 #' \dontrun{
 #' table <- get_enrichment_table(gsea_results$df, "", "Name")
@@ -262,9 +261,12 @@ get_enrichment_table <- function(.df, .order, .name){
     result <- .df %>% dplyr::arrange(!!rlang::sym(.order))
   }
   
+  # Convert to data frame and set rownames
+  result <- as.data.frame(result)
+  rownames(result) <- result[[.name]]
+  result[[.name]] <- NULL
+  
   result <- result %>%
-    tibble::remove_rownames() %>%
-    tibble::column_to_rownames(.name) %>%
     dplyr::mutate(
       NES = round(NES, 2),
       FDR = round(p.adjust, 4)
