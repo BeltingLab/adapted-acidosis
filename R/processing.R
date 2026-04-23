@@ -198,6 +198,8 @@ remove_duplicates <- function (.data, .symbol)
 #' @param .data Data frame containing expression matrix with numeric columns
 #' @param .design Character vector specifying sample groups
 #' @param .contrast Character vector of contrasts to test (e.g., "treatment-control")
+#' @param .intercept Logical. If TRUE, uses a reference model with intercept (~t). 
+#'   If FALSE (default), uses a means model without intercept (~0+t)
 #'
 #' @return List of data frames, one for each contrast, containing differential expression results
 #' @export
@@ -208,9 +210,12 @@ remove_duplicates <- function (.data, .symbol)
 #' \dontrun{
 #' design <- c("control", "control", "treatment", "treatment")
 #' contrasts <- c("treatment-control")
+#' # Means model (default)
 #' results <- limma_dea(expr_data, design, contrasts)
+#' # Reference model with intercept
+#' results <- limma_dea(expr_data, design, contrasts, .intercept = TRUE)
 #' }
-limma_dea <- function(.data, .design, .contrast){
+limma_dea <- function(.data, .design, .contrast, .intercept = FALSE){
   # Extract numeric columns
   mat <- .data[, sapply(.data, is.numeric)]
   colnames(mat) <- gsub("_\\(.*$", "\\1", colnames(mat))
@@ -220,8 +225,13 @@ limma_dea <- function(.data, .design, .contrast){
   t <- as.factor(.design)
   levels(t) <- make.names(levels(t)) # Rename levels to ensure syntactically valid names
   
-  design <- stats::model.matrix(~0 + t)
-  colnames(design) <- levels(t)
+  # Choose between means model (~0+t) or reference model (~t)
+  if (.intercept) {
+    design <- stats::model.matrix(~t)
+  } else {
+    design <- stats::model.matrix(~0 + t)
+    colnames(design) <- levels(t)
+  }
   
   # Fit the linear model
   fit <- limma::lmFit(mat, design)
@@ -230,7 +240,7 @@ limma_dea <- function(.data, .design, .contrast){
   fit$genes$entrezID <- .data$ENTREZID
   
   # Fit the contrasts
-  contrast.matrix <- limma::makeContrasts(contrasts = .contrast, levels = t)
+  contrast.matrix <- limma::makeContrasts(contrasts = .contrast, levels = colnames(design))
   fit2 <- limma::contrasts.fit(fit, contrast.matrix)
   fit2 <- limma::eBayes(fit2)
   
