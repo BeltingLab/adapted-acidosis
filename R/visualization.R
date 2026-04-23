@@ -28,9 +28,9 @@ plot_vulcan <- function(.data, label = TRUE){
                  y = expression(paste(log[10], italic('FDR')))) +
     ggplot2::scale_x_continuous(expand = ggplot2::expansion(0.2)) +
     # Visualize log2FC threshold
-    ggplot2::geom_vline(xintercept = c(-0.5, 0.5), linetype = 'dotted', size = 1) +
+    ggplot2::geom_vline(xintercept = c(-0.5, 0.5), linetype = 'dotted', linewidth = 1) +
     # Visualize adjusted p-value threshold
-    ggplot2::geom_hline(yintercept = -log10(0.05), linetype = 'dotted', size = 1) +
+    ggplot2::geom_hline(yintercept = -log10(0.05), linetype = 'dotted', linewidth = 1) +
     ggplot2::theme(axis.title = ggplot2::element_text(size = 14),
                   axis.text = ggplot2::element_text(size = 14),
                   legend.position = 'none')

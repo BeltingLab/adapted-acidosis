@@ -222,7 +222,15 @@ extract_gsea_results <- function(.gsea, .db, signif_cutoff = 0.1){
                        function(x) return(x[1])),
       Name = sapply(stringr::str_split(ID, "_"),
                    function(x) return(paste(x[-1], collapse = "_")))
-    )
+    ) %>% 
+    dplyr::rowwise(.) %>% 
+    # Calculate background ratio
+    dplyr::mutate(
+      geneRatio = length(stringr::str_split(core_enrichment,"\\/", simplify = TRUE))/setSize
+    ) %>% 
+    dplyr::ungroup() %>% 
+    dplyr::relocate(c("ID", "Name", "setSize", "geneRatio", "NES", "p.adjust", "core_enrichment"),
+                    .before = everything())
   
   # Add the pathway IDs and descriptions to the data frame
   ids <- df$ID
